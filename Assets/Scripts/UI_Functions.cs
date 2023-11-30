@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Networking;
 using System.Collections;
+using System.Collections.Generic;
 
 public class ObjectResizer : MonoBehaviour
 {
@@ -13,7 +14,7 @@ public class ObjectResizer : MonoBehaviour
     private Vector3 originalScale;
     private Vector3 originalPosition;
 
-    private const string apiUrl = "https://pokeapi.co/api/v2/pokemon"; // Replace with the specific Pokémon you want to fetch
+    private const string apiUrl = "https://pokeapi.co/api/v2/pokemon";
 
     void Start()
     {
@@ -53,25 +54,27 @@ public class ObjectResizer : MonoBehaviour
         sizeSlider.value = 0.5f;
     }
 
+
     IEnumerator UpdateApiTextCoroutine()
     {
         while (true)
         {
-            // Fetch data from the API
-            UnityWebRequest www = UnityWebRequest.Get(apiUrl);
-            yield return www.SendWebRequest();
+            using (UnityWebRequest request = UnityWebRequest.Get(apiUrl))
+        {
+            yield return request.SendWebRequest();
 
-            // Check for errors
-            if (www.isNetworkError || www.isHttpError)
+            if (request.result ==UnityWebRequest.Result.ConnectionError)
             {
-                Debug.LogError(www.error);
+                Debug.Log("Error: " + request.error);
             }
             else
             {
-                // Display the API data in the UI Text
-                apiText.text = www.downloadHandler.text;
-                Debug.Log(www.downloadHandler.text);
+                string json = request.downloadHandler.text;
+                SimpleJSON.JSONNode data = SimpleJSON.JSON.Parse(json);
+                apiText.text = data["results"][0]["name"];
+                Debug.Log("Data: " + data["results"][0]["name"]);
             }
+        }
 
             // Wait for 5 seconds before the next API request
             yield return new WaitForSeconds(5f);
